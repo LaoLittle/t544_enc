@@ -1,0 +1,17 @@
+[package]
+name = "t544_enc"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rc4 = "0.1.0"
+md-5 = "0.10.5"
+
+[dependencies.rand]
+version = "0.8.5"
+features = ["std_rng"]
+
+[profile.release]
