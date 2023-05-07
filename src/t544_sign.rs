@@ -380,14 +380,14 @@ fn sub_e(t: &[[u8; 6]; 256], data: &mut [u8; 16]) {
 }
 
 fn sub_aa(i: usize, table: &[[[[u8; 16]; 16]; 2]; 16], buf: &[u8; 16], data: &[u8]) -> u8 {
-    let datum = data[i];
+    let datum = data[i] as usize;
 
     let idxt = i & 15;
     let idxs = (buf[idxt] as usize) & 15;
     let tb = &table[idxt];
 
-    let a = tb[0][(datum >> 4) as usize][idxs] << 4;
-    let b = tb[1][(datum & 15) as usize][idxs];
+    let a = tb[0][datum >> 4][idxs] << 4;
+    let b = tb[1][datum & 15][idxs];
     a ^ b
 }
 
