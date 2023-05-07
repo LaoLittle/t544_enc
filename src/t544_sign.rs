@@ -22,11 +22,11 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
     }
 
     let mut key_table = [0u8; 40];
-    for i in 0..2 {
+    for i in [0, 1] {
         key_table[i] = KEY_TABLE[gen_idx(&mut rng)] + 50;
     }
 
-    for i in 1..=2 {
+    for i in [1, 2] {
         key_table[i + 1] = key_table[i] + 20;
     }
 
@@ -40,7 +40,7 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
     for i in 0..4 {
         k3[i + 2 + 4] = KEY2[i] ^ ks[i];
     }
-    for i in 0..=1 {
+    for i in [0, 1] {
         k3[i] = std::mem::take(&mut k3[i + 8]);
     }
 
@@ -65,9 +65,9 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
     crc_dat[9..9 + 4].copy_from_slice(&(time as u32).to_be_bytes());
     crc_dat[13..13 + 8].copy_from_slice(&md5_result[..8]);
     let crc32 = tencent_crc_32(&CRC_TABLE, (&crc_dat[2..]).try_into().unwrap());
-    key_table[36..36 + 4].copy_from_slice(&crc32.to_ne_bytes());
+    key_table[36..36 + 4].copy_from_slice(&crc32.to_le_bytes());
     crc_dat[0] = key_table[36];
-    crc_dat[1] = key_table[36 + 3];
+    crc_dat[1] = key_table[39];
 
     let nbytes: [u8; 4] = (rng.next_u32() ^ rng.next_u32() ^ rng.next_u32()).to_be_bytes();
     key_table[..4].copy_from_slice(&nbytes);
@@ -105,9 +105,8 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
 }
 
 #[no_mangle]
-unsafe extern "C" fn sub_ad_c(ptr: *mut u32) {
-    let st: &mut [u32; 16] = std::mem::transmute(ptr);
-    sub_ad(st);
+unsafe extern "C" fn sub_ad_c(ptr: *mut [u32; 16]) {
+    sub_ad(&mut *ptr);
 }
 
 fn sub_ad(st: &mut [u32; 16]) {
@@ -149,7 +148,7 @@ fn sub_ad(st: &mut [u32; 16]) {
     cx = cx.rotate_left(12);
     r11 = r11.wrapping_add(r9);
     r8 ^= r14;
-    r13  =  r13.wrapping_add(cx);
+    r13 = r13.wrapping_add(cx);
     dx ^= r11;
     r8 = r8.rotate_left(8);
     di ^= r13;
@@ -163,7 +162,7 @@ fn sub_ad(st: &mut [u32; 16]) {
     bx = r10;
     r10 = st[15];
     si = si.rotate_left(7);
-    bx  = bx.wrapping_add(di);
+    bx = bx.wrapping_add(di);
     r12 = r12.wrapping_add(dx);
     r15 = r15.wrapping_add(si);
     r10 ^= r12;
@@ -326,19 +325,20 @@ fn sub_b(data: &mut [u8; 16], t: &[u32; 4]) {
         let i4 = i << 2;
         tb[i4..i4 + 4].copy_from_slice(&val.to_le_bytes());
     }
-    tb.rotate_left(3);
 
     for i in 0..4 {
+        let i4 = i << 2;
         let [q,w,e,r, ..] = &mut data[i << 2..] else {
             unreachable!();
         };
-        let [a, _, _, b, _, _, c, _, _, d, ..] = tb;
 
-        *q ^= a;
-        *w ^= b;
-        *e ^= c;
-        *r ^= d;
-        tb.rotate_left(4);
+        let (h, i, j, k) = ((i4 + 3) & 15, (i4 + 6) & 15, (i4 + 9) & 15, (i4 + 12) & 15);
+        let (h, i, j, k) = (tb[h], tb[i], tb[j], tb[k]);
+
+        *q ^= h;
+        *w ^= i;
+        *e ^= j;
+        *r ^= k;
     }
 }
 
@@ -398,20 +398,16 @@ fn state_init(state: &mut State, key: &[u8; 32], data: &[u8; 8], counter: u64, n
 }
 
 fn init_state_impl(state: &mut State, key: &[u8; 32], data: &[u8; 8], counter: u64) {
-    // di = state
-    // si = key
-    // r8 = data
-    // ax = counter
-    let di = &mut state.state;
+    let stat = &mut state.state;
     // 0..4
-    di[..4].copy_from_slice(&STAT_CHK);
+    stat[..4].copy_from_slice(&STAT_CHK);
 
     // 4..12
     for i in (0..32).step_by(4) {
         let i4 = i + 4;
         let kb = <[u8; 4]>::try_from(&key[i..i4]).unwrap();
         let k = u32::from_le_bytes(kb);
-        di[(i + 16) >> 2] = k;
+        stat[(i + 16) >> 2] = k;
     }
 
     fn put_16b(dst: &mut [u32; 2], src: &[u8; 8]) {
@@ -426,25 +422,25 @@ fn init_state_impl(state: &mut State, key: &[u8; 32], data: &[u8; 8], counter: u
 
     // 12..14
     put_16b(
-        (&mut di[12..=13]).try_into().unwrap(),
+        (&mut stat[12..=13]).try_into().unwrap(),
         &counter.to_le_bytes(),
     );
     // 14..16
-    put_16b((&mut di[14..=15]).try_into().unwrap(), data);
+    put_16b((&mut stat[14..=15]).try_into().unwrap(), data);
 
-    let di2 = &mut state.org_state;
+    let org_stat = &mut state.org_state;
 
     for i in 0..12 {
-        di2[i] = di[i];
+        org_stat[i] = stat[i];
     }
 
     for i in 12..16 {
-        di2[i] = rand::thread_rng().next_u32();
+        org_stat[i] = rand::thread_rng().next_u32();
     }
 }
 
 fn encrypt(state: &mut State, data: &mut [u8]) {
-    let mut bp = 0;
+    let mut cnt = 0;
     let mut len = data.len();
 
     while len > 0 {
@@ -463,9 +459,9 @@ fn encrypt(state: &mut State, data: &mut [u8]) {
             sb[i << 2..(i + 1) << 2].copy_from_slice(&vb);
         }
         while state.p <= 64 && len != 0 {
-            data[bp] ^= sb[state.p as usize];
+            data[cnt] ^= sb[state.p as usize];
             state.p += 1;
-            bp += 1;
+            cnt += 1;
             len -= 1;
         }
         if state.p >= 64 {
@@ -477,18 +473,20 @@ fn encrypt(state: &mut State, data: &mut [u8]) {
 }
 
 fn transform_encode(x: &mut [u8; 21]) {
-    transform_inner(x, &ENC_TR);
+    transformer(x, &ENC_TR);
 }
 
 fn transform_decode(x: &mut [u8; 21]) {
-    transform_inner(x, &DEC_TR);
+    transformer(x, &DEC_TR);
 }
 
-fn transform_inner(x: &mut [u8; 21], tab: &[[u8; 16]; 32]) {
+fn transformer(x: &mut [u8; 21], tab: &[[u8; 16]; 32]) {
     for (i, val) in x.iter_mut().enumerate() {
         let i = i << 1;
         let e = *val as usize;
-        *val = (tab[i & 31][e >> 4] << 4) ^ tab[(i + 1) & 31][e & 15];
+        let a = tab[i & 31][e >> 4] << 4;
+        let b = tab[(i + 1) & 31][e & 15];
+        *val = a ^ b;
     }
 }
 
@@ -590,7 +588,14 @@ mod tests {
 
     #[test]
     fn test_sign() {
-        println!("{:?}", sign(0, &[]));
+        let sign_bytes = sign(0, &[]);
+        assert_eq!(
+            sign_bytes,
+            [
+                12, 5, 98, 73, 61, 196, 234, 0, 254, 187, 84, 141, 94, 104, 141, 255, 204, 136, 34,
+                7, 104, 227, 86, 0, 16, 75, 169, 0, 0, 0, 0, 107, 43, 114, 46, 0, 0, 0, 0
+            ]
+        );
     }
 
     #[test]
