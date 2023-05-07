@@ -30,8 +30,6 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
         key_table[i + 1] = key_table[i] + 20;
     }
 
-    // key3 = kt[4..14]
-    // k3calc = kt[6..14]
     let mut ks = [0u8; 4];
     ks.copy_from_slice(&key_table[..4]);
 
@@ -110,40 +108,25 @@ unsafe extern "C" fn sub_ad_c(ptr: *mut [u32; 16]) {
 }
 
 fn sub_ad(st: &mut [u32; 16]) {
-    let mut r10 = st[10];
     let mut r12 = st[3];
-    let mut bp = st[11];
     let mut dx = st[4];
-    let mut r15 = st[0];
-    let mut r9 = st[12];
+    let mut bp = st[11];
+    let mut r15 = st[0].wrapping_add(dx);
+    let mut r9 = (st[12] ^ r15).rotate_left(16);
     let mut si = st[5];
-    let mut r11 = st[8];
-    r15 = r15.wrapping_add(dx);
-    let mut r14 = st[1];
-    let mut r8 = st[13];
-    r9 ^= r15;
+    let mut r11 = st[8].wrapping_add(r9);
+    let mut r14 = st[1].wrapping_add(si);
+    let mut r8 = (st[13] ^ r14).rotate_left(16);
     let mut cx = st[6];
-    let mut r13 = st[2];
-    r9 = r9.rotate_left(16);
-    r14 = r14.wrapping_add(si);
-    let mut bx = st[9];
-    let mut di = st[14];
-    r11 = r11.wrapping_add(r9);
-    r8 ^= r14;
-    r13 = r13.wrapping_add(cx);
-    dx ^= r11;
-    r8 = r8.rotate_left(16);
-    di ^= r13;
-    dx = dx.rotate_left(12);
-    bx = bx.wrapping_add(r8);
-    di = di.rotate_left(16);
+    let mut r13 = st[2].wrapping_add(cx);
+    let mut bx = st[9].wrapping_add(r8);
+    let mut di = (st[14] ^ r13).rotate_left(16);
+    let mut r10 = st[10].wrapping_add(di);
+    dx = (dx ^ r11).rotate_left(12);
     r15 = r15.wrapping_add(dx);
-    si ^= bx;
-    r10 = r10.wrapping_add(di);
-    r9 ^= r15;
-    si = si.rotate_left(12);
+    let mut r9 = (r9 ^ r15).rotate_left(8);
+    let mut si = (si ^ bx).rotate_left(12);
     cx ^= r10;
-    r9 = r9.rotate_left(8);
     r14 = r14.wrapping_add(si);
     cx = cx.rotate_left(12);
     r11 = r11.wrapping_add(r9);
@@ -458,12 +441,14 @@ fn encrypt(state: &mut State, data: &mut [u8]) {
             let vb = val.to_le_bytes();
             sb[i << 2..(i + 1) << 2].copy_from_slice(&vb);
         }
+
         while state.p <= 64 && len != 0 {
             data[cnt] ^= sb[state.p as usize];
             state.p += 1;
             cnt += 1;
             len -= 1;
         }
+
         if state.p >= 64 {
             state.p = 0;
             state.org_state[12] += 1;
@@ -484,6 +469,7 @@ fn transformer(x: &mut [u8; 21], tab: &[[u8; 16]; 32]) {
     for (i, val) in x.iter_mut().enumerate() {
         let i = i << 1;
         let e = *val as usize;
+
         let a = tab[i & 31][e >> 4] << 4;
         let b = tab[(i + 1) & 31][e & 15];
         *val = a ^ b;
@@ -492,18 +478,12 @@ fn transformer(x: &mut [u8; 21], tab: &[[u8; 16]; 32]) {
 
 #[cfg(test)]
 mod tests {
-
     use crate::data::{ENC_TEA, ENC_TEB, ENC_TEC, IP_TABLE};
     use crate::t544_sign::{
         permute, sign, state_init, sub_a, sub_aa, sub_ad, sub_b, sub_c, sub_e, tencent_crc_32,
         transform_encode, State, CRC_TABLE,
     };
     use rc4::{KeyInit, StreamCipher};
-
-    #[test]
-    fn aaa() {
-        println!("{:b}", 15);
-    }
 
     #[test]
     fn test_sub_ad() {
@@ -520,38 +500,6 @@ mod tests {
                 3906279370, 3224769161
             ]
         );
-    }
-
-    #[test]
-    fn a() {
-        let num = 0xCAFED00Du32;
-        println!("{:X}", num.rotate_left(4));
-
-        println!("{}", 0xF);
-    }
-
-    #[test]
-    fn left() {
-        println!("{}", 0x15);
-        let mut a = 1;
-        let b = std::mem::take(&mut a);
-        println!("{}, {}", a, b);
-
-        let dd = ['&', 'O', '9', '!', '>', '6', 'X', ')'];
-        println!("{:?}", dd.map(|c| c as u8));
-        println!(
-            "{:?}",
-            b"!#$%&)+.0123456789:=>?@ABCDEFGKMNabcdefghijkopqrst"
-        );
-    }
-
-    #[test]
-    fn rc4() {
-        let mut slice = [1, 2, 3, 4, 5, 6, 7, 8];
-        let mut cipher = rc4::Rc4::new(&rc4::Key::from(slice));
-
-        cipher.apply_keystream(&mut slice);
-        println!("{:?}", slice);
     }
 
     #[test]
@@ -574,7 +522,6 @@ mod tests {
 
         let data = [0, 14, 0, 224, 0, 5, 0, 0];
         state_init(&mut s, &key, &data, 0, 20);
-        println!("{:?}", s);
 
         assert_eq!(
             s.state,
@@ -605,7 +552,10 @@ mod tests {
         ];
         permute(&IP_TABLE, &mut buf);
 
-        println!("{:?}", buf);
+        assert_eq!(
+            buf,
+            [10, 11, 205, 208, 53, 217, 247, 150, 243, 231, 59, 10, 227, 93, 250, 64]
+        );
     }
 
     #[test]

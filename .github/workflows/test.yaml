@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { name: macOS-x64, os: macos-latest }
+          - { name: Linux-x64, os: ubuntu-latest }
+          - { name: Windows-x64, os: windows-latest }
+
+    name: ${{ matrix.target.name }}
+    runs-on: ${{ matrix.target.os }}
+
+    env:
+      CI: 1
+      CARGO_INCREMENTAL: 0
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Test
+        run: cargo test
