@@ -112,8 +112,8 @@ fn sub_ad(st: &mut [u32; 16]) {
     let mut dx = st[4];
     let mut bp = st[11];
     let mut r15 = st[0].wrapping_add(dx);
-    let mut r9 = (st[12] ^ r15).rotate_left(16);
-    let mut si = st[5];
+    let r9 = (st[12] ^ r15).rotate_left(16);
+    let si = st[5];
     let mut r11 = st[8].wrapping_add(r9);
     let mut r14 = st[1].wrapping_add(si);
     let mut r8 = (st[13] ^ r14).rotate_left(16);
@@ -126,101 +126,76 @@ fn sub_ad(st: &mut [u32; 16]) {
     r15 = r15.wrapping_add(dx);
     let mut r9 = (r9 ^ r15).rotate_left(8);
     let mut si = (si ^ bx).rotate_left(12);
-    cx ^= r10;
     r14 = r14.wrapping_add(si);
-    cx = cx.rotate_left(12);
+    cx = (cx ^ r10).rotate_left(12);
     r11 = r11.wrapping_add(r9);
     r8 ^= r14;
     r13 = r13.wrapping_add(cx);
-    dx ^= r11;
     r8 = r8.rotate_left(8);
-    di ^= r13;
-    dx = dx.rotate_left(7);
     bx = bx.wrapping_add(r8);
-    di = di.rotate_left(8);
-    let tmp0 = dx;
-    dx = st[7];
+    di = (di ^ r13).rotate_left(8);
+    let tmp0 = (dx ^ r11).rotate_left(7);
+    let mut dx = st[7];
     si ^= bx;
     let tmp1 = bx;
-    bx = r10;
-    r10 = st[15];
+    let mut bx = r10;
     si = si.rotate_left(7);
     bx = bx.wrapping_add(di);
     r12 = r12.wrapping_add(dx);
     r15 = r15.wrapping_add(si);
-    r10 ^= r12;
-    cx ^= bx;
-    r10 = r10.rotate_left(16);
-    cx = cx.rotate_left(7);
+    r10 = (st[15] ^ r12).rotate_left(16);
+    cx = (cx ^ bx).rotate_left(7);
     bp = bp.wrapping_add(r10);
     r14 = r14.wrapping_add(cx);
-    dx ^= bp;
-    r9 ^= r14;
-    dx = dx.rotate_left(12);
-    r9 = r9.rotate_left(16);
+    dx = (dx ^ bp).rotate_left(12);
+    r9 = (r9 ^ r14).rotate_left(16);
     r12 = r12.wrapping_add(dx);
-    r10 ^= r12;
-    r10 = r10.rotate_left(8);
-    bp = bp.wrapping_add(r10);
-    r10 ^= r15;
-    r10 = r10.rotate_left(16);
-    dx ^= bp;
-    bp = bp.wrapping_add(r9);
-    bx = bx.wrapping_add(r10);
-    dx = dx.rotate_left(7);
-    cx ^= bp;
-    si ^= bx;
-    si = si.rotate_left(12);
-    r15 = r15.wrapping_add(si);
-    r10 ^= r15;
+    let r10 = (r10 ^ r12).rotate_left(8);
+    let bp = bp.wrapping_add(r10);
+    let r10 = (r10 ^ r15).rotate_left(16);
+    let bx = bx.wrapping_add(r10);
+    let si = (si ^ bx).rotate_left(12);
+    let r15 = r15.wrapping_add(si);
     st[0] = r15;
-    r10 = r10.rotate_left(8);
-    bx = bx.wrapping_add(r10);
+    let r10 = (r10 ^ r15).rotate_left(8);
+    let bx = bx.wrapping_add(r10);
     st[15] = r10;
-    si ^= bx;
     st[10] = bx;
-    si = si.rotate_left(7);
-    cx = cx.rotate_left(12);
-    r13 = r13.wrapping_add(dx);
-    r8 ^= r13;
-    r14 = r14.wrapping_add(cx);
-    st[5] = si;
-    r8 = r8.rotate_left(16);
-    r9 ^= r14;
+    let dx = (dx ^ bp).rotate_left(7);
+    let bp = bp.wrapping_add(r9);
+    let cx = (cx ^ bp).rotate_left(12);
+    let r13 = r13.wrapping_add(dx);
+    let r14 = r14.wrapping_add(cx);
+    st[5] = (si ^ bx).rotate_left(7);
+    let r8 = (r8 ^ r13).rotate_left(16);
     st[1] = r14;
-    r11 = r11.wrapping_add(r8);
-    r9 = r9.rotate_left(8);
-    dx ^= r11;
-    bp = bp.wrapping_add(r9);
+    let r11 = r11.wrapping_add(r8);
+    let r9 = (r9 ^ r14).rotate_left(8);
+    let bp = bp.wrapping_add(r9);
     st[12] = r9;
-    dx = dx.rotate_left(12);
-    cx ^= bp;
+    let dx = (dx ^ r11).rotate_left(12);
     st[11] = bp;
-    r13 = r13.wrapping_add(dx);
-    cx = cx.rotate_left(7);
-    r8 ^= r13;
-    st[6] = cx;
-    r8 = r8.rotate_left(8);
+    let r13 = r13.wrapping_add(dx);
+    st[6] = (cx ^ bp).rotate_left(7);
+    let r8 = (r8 ^ r13).rotate_left(8);
     st[2] = r13;
-    r11 = r11.wrapping_add(r8);
-    dx ^= r11;
+    let r11 = r11.wrapping_add(r8);
     st[8] = r11;
-    st[7] = dx.rotate_left(7);
+    st[7] = (dx ^ r11).rotate_left(7);
     st[13] = r8;
     r12 = r12.wrapping_add(tmp0);
     di ^= r12;
     di = di.rotate_left(16);
     let cx = tmp1.wrapping_add(di);
-    dx = tmp0 ^ cx;
-    dx = dx.rotate_left(12);
+    let dx = (tmp0 ^ cx).rotate_left(12);
     r12 = r12.wrapping_add(dx);
     di ^= r12;
     st[3] = r12;
     let rd = di.rotate_left(8);
     st[14] = rd;
-    let cxx = cx.wrapping_add(rd);
-    st[9] = cxx;
-    st[4] = (dx ^ cxx).rotate_left(7);
+    let cx = cx.wrapping_add(rd);
+    st[4] = (dx ^ cx).rotate_left(7);
+    st[9] = cx;
 }
 
 #[derive(Default, Debug)]
@@ -240,9 +215,8 @@ fn tencent_crc_32(table: &CrcTable, bytes: &[u8]) -> u32 {
     for &val in bytes {
         let mut val = val;
         val ^= crc as u8;
-        crc >>= 8;
         // val is less then or equals 255
-        crc ^= table[val as usize];
+        crc = (crc >> 8) ^ table[val as usize];
     }
 
     !crc
@@ -261,11 +235,9 @@ fn tencent_enc_b(ktb: &mut [u8; 16], crc: &[u8; 21], output: &mut [u8; 21]) {
         if i & 15 == 0 {
             buf.copy_from_slice(ktb);
             _tencent_enc_b(&mut buf, &ENC_TRB);
-            for j in (0..16).rev() {
-                let mut tmp = ktb[j];
-                tmp += 1;
-                ktb[j] = tmp;
-                if tmp != 0 {
+            for j in ktb.iter_mut().rev() {
+                *j = j.wrapping_add(1);
+                if *j != 0 {
                     break;
                 }
             }
@@ -365,12 +337,13 @@ fn sub_e(t: &[[u8; 6]; 256], data: &mut [u8; 16]) {
 fn sub_aa(i: usize, table: &[[[[u8; 16]; 16]; 2]; 16], buf: &[u8; 16], data: &[u8]) -> u8 {
     let datum = data[i] as usize;
 
-    let idxt = i & 15;
-    let idxs = (buf[idxt] as usize) & 15;
-    let tb = &table[idxt];
+    let idx = i & 15;
+    let bufdx = buf[idx] as usize;
 
-    let a = tb[0][datum >> 4][idxs] << 4;
-    let b = tb[1][datum & 15][idxs];
+    let tb = &table[idx];
+
+    let a = tb[0][datum >> 4][bufdx >> 4] << 4;
+    let b = tb[1][datum & 15][bufdx & 15];
     a ^ b
 }
 
@@ -478,12 +451,70 @@ fn transformer(x: &mut [u8; 21], tab: &[[u8; 16]; 32]) {
 
 #[cfg(test)]
 mod tests {
-    use crate::data::{ENC_TEA, ENC_TEB, ENC_TEC, IP_TABLE};
+    use crate::data::{ENC_TEA, ENC_TEB, ENC_TEC, ENC_TRB, IP_TABLE};
     use crate::t544_sign::{
         permute, sign, state_init, sub_a, sub_aa, sub_ad, sub_b, sub_c, sub_e, tencent_crc_32,
-        transform_encode, State, CRC_TABLE,
+        tencent_enc_a, tencent_enc_b, transform_encode, State, _tencent_enc_b, CRC_TABLE,
     };
-    use rc4::{KeyInit, StreamCipher};
+
+    #[test]
+    fn test_tc_enc_a() {
+        let mut input = [0; 4];
+        let key = [
+            252, 116, 44, 52, 247, 132, 156, 158, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let crc = [64, 85, 103, 196, 13, 207, 237, 110];
+
+        tencent_enc_a(&mut input, &key, &crc);
+
+        assert_eq!(input, [215, 5, 255, 209]);
+
+        let mut input = [253, 15, 22, 102];
+        tencent_enc_a(&mut input, &key, &crc);
+
+        assert_eq!(input, [42, 10, 233, 183]);
+    }
+
+    #[test]
+    fn test_tc_enc_b() {
+        let mut buf = [
+            210, 139, 64, 91, 210, 139, 64, 91, 210, 139, 64, 91, 210, 139, 64, 91,
+        ];
+        _tencent_enc_b(&mut buf, &ENC_TRB);
+        assert_eq!(
+            buf,
+            [71, 67, 148, 199, 14, 167, 49, 35, 113, 99, 212, 182, 0, 213, 107, 214]
+        );
+
+        let mut buf = [
+            210, 139, 64, 91, 210, 139, 64, 91, 210, 139, 64, 91, 210, 139, 64, 92,
+        ];
+        _tencent_enc_b(&mut buf, &ENC_TRB);
+        assert_eq!(
+            buf,
+            [243, 65, 4, 164, 172, 162, 64, 218, 221, 224, 230, 138, 88, 226, 82, 211,]
+        );
+
+        let mut ktb = [
+            210, 139, 64, 91, 210, 139, 64, 91, 210, 139, 64, 91, 210, 139, 64, 91,
+        ];
+        let crc = [
+            214, 56, 32, 165, 34, 194, 140, 121, 237, 149, 29, 148, 12, 217, 253, 87, 136, 248,
+            229, 203, 25,
+        ];
+        let mut out = [0; 21];
+
+        tencent_enc_b(&mut ktb, &crc, &mut out);
+
+        assert_eq!(
+            out,
+            [
+                219, 169, 68, 203, 7, 13, 227, 94, 199, 9, 168, 23, 251, 213, 244, 227, 139, 133,
+                22, 120, 139,
+            ]
+        );
+    }
 
     #[test]
     fn test_sub_ad() {
@@ -510,6 +541,14 @@ mod tests {
 
         let crc = tencent_crc_32(&CRC_TABLE, &data);
         assert_eq!(crc, 3648022832);
+
+        let crc = tencent_crc_32(
+            &CRC_TABLE,
+            &[
+                1, 0, 1, 93, 88, 108, 128, 0, 0, 0, 0, 39, 66, 158, 221, 70, 218, 150, 100,
+            ],
+        );
+        assert_eq!(crc, 1449873289);
     }
 
     #[test]
@@ -539,8 +578,8 @@ mod tests {
         assert_eq!(
             sign_bytes,
             [
-                12, 5, 98, 73, 61, 196, 234, 0, 254, 187, 84, 141, 94, 104, 141, 255, 204, 136, 34,
-                7, 104, 227, 86, 0, 16, 75, 169, 0, 0, 0, 0, 107, 43, 114, 46, 0, 0, 0, 0
+                12, 5, 98, 73, 61, 196, 202, 80, 14, 27, 244, 157, 94, 216, 205, 175, 236, 200, 98,
+                151, 72, 195, 134, 64, 176, 235, 57, 0, 0, 0, 0, 107, 43, 114, 46, 0, 0, 0, 0
             ]
         );
     }
@@ -632,12 +671,15 @@ mod tests {
 
     #[test]
     fn test_sub_aa() {
-        let buf = [0, 0, 0, 14, 32, 0, 255, 0, 123, 0, 45, 67, 89, 0, 0, 0];
+        let buf = [
+            71, 67, 148, 199, 14, 167, 49, 35, 113, 99, 212, 182, 0, 213, 107, 214,
+        ];
         let m = [
-            12, 0, 32, 0, 114, 0, 51, 4, 21, 12, 32, 23, 255, 122, 32, 14, 0, 0, 0, 0, 0,
+            214, 56, 32, 165, 34, 194, 140, 121, 237, 149, 29, 148, 12, 217, 253, 87, 136, 248,
+            229, 203, 25,
         ];
 
         let b = sub_aa(0, &ENC_TEA, &buf, &m);
-        assert_eq!(b, 131);
+        assert_eq!(b, 219);
     }
 }
