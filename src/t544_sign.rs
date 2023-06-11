@@ -102,11 +102,6 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
     out
 }
 
-#[no_mangle]
-unsafe extern "C" fn sub_ad_c(ptr: *mut [u32; 16]) {
-    sub_ad(&mut *ptr);
-}
-
 fn sub_ad(st: &mut [u32; 16]) {
     let mut r12 = st[3];
     let mut dx = st[4];
@@ -274,26 +269,15 @@ fn sub_a(data: &mut [u8; 16], t: &[u32; 4]) {
     }
 }
 
-fn sub_b(data: &mut [u8; 16], t: &[u32; 4]) {
-    let mut tb = [0u8; 16];
-    for (i, &val) in t.iter().enumerate() {
+fn sub_b(data: &mut [u8; 16], tb: &[u32; 4]) {
+    const TR: [usize; 16] = [7, 10, 13, 0, 11, 14, 1, 4, 15, 2, 5, 8, 3, 6, 9, 12];
+
+    for (i, t) in tb.iter().enumerate() {
         let i4 = i << 2;
-        tb[i4..i4 + 4].copy_from_slice(&val.to_le_bytes());
-    }
-
-    for i in 0..4 {
-        let i4 = i << 2;
-        let [q,w,e,r, ..] = &mut data[i << 2..] else {
-            unreachable!();
-        };
-
-        let (h, i, j, k) = ((i4 + 3) & 15, (i4 + 6) & 15, (i4 + 9) & 15, (i4 + 12) & 15);
-        let (h, i, j, k) = (tb[h], tb[i], tb[j], tb[k]);
-
-        *q ^= h;
-        *w ^= i;
-        *e ^= j;
-        *r ^= k;
+        let num: [u8; 4] = t.to_le_bytes();
+        for j in 0..4 {
+            data[TR[i4 + j]] ^= num[j];
+        }
     }
 }
 
