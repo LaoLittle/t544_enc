@@ -93,8 +93,7 @@ pub fn sign(mut time: u64, bytes: &[u8]) -> [u8; 39] {
     out[27..27 + 4].fill(0);
     out[31] = TABLE2[gen_idx(&mut rng)];
     out[32] = TABLE2[gen_idx(&mut rng)];
-    let mut add = rng.gen_range(0u8..8);
-    add |= 0b1;
+    let add = rng.gen_range(0u8..8) | 1;
     out[33] = out[31] + add;
     out[34] = out[32] + 9 - add + 1;
     out[35..35 + 4].fill(0);
@@ -208,8 +207,7 @@ fn tencent_crc_32(table: &CrcTable, bytes: &[u8]) -> u32 {
 
     let mut crc = u32::MAX;
     for &val in bytes {
-        let mut val = val;
-        val ^= crc as u8;
+        let val = val ^ (crc as u8);
         // val is less then or equals 255
         crc = (crc >> 8) ^ table[val as usize];
     }
