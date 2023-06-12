@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           ldd --version
-          apt-get update
+          apt-get update -q
           apt-get install -y -q binutils wget
           apt-get install -y -q build-essential gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
           strings /lib/x86_64-linux-gnu/libc.so.6 | grep GLIBC_
