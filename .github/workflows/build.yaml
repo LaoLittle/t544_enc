@@ -69,6 +69,11 @@ jobs:
         run: |
           ldd --version
 
+      - name: Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Install Rust X64 Target
         shell: bash
         run: |
