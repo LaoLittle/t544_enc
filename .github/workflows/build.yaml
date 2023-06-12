@@ -17,13 +17,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: hecrj/setup-rust-action@master
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          rust-version: stable
-
-      - name: Install LLVM
-        run: choco install llvm
+          toolchain: stable
 
       - name: Install Rust Target
         shell: bash
@@ -72,19 +69,15 @@ jobs:
           apt-get install -y -q build-essential gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
           strings /lib/x86_64-linux-gnu/libc.so.6 | grep GLIBC_
 
-      - name: Toolchain
+      - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
 
-      - name: Install Rust X64 Target
+      - name: Install Rust Target
         shell: bash
         run: |
           rustup target add x86_64-unknown-linux-gnu
-
-      - name: Install Rust AARCH64 Target
-        shell: bash
-        run: |
           rustup target add aarch64-unknown-linux-gnu
 
       - name: Build Linux X64
@@ -120,15 +113,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: hecrj/setup-rust-action@master
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          rust-version: stable
-
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "13.0.1"
+          toolchain: stable
 
       - name: Install Rust Target
         shell: bash
@@ -189,10 +177,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: hecrj/setup-rust-action@master
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          rust-version: stable
+          toolchain: stable
 
       - name: Install Rust Target
         shell: bash
