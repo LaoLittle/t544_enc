@@ -50,19 +50,11 @@ jobs:
 
   linux-build:
     runs-on: ubuntu-latest
+    # https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
+    container: quay.io/pypa/manylinux2014_x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Install Rust
-        uses: hecrj/setup-rust-action@master
-        with:
-          rust-version: stable
-
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "13.0.1"
 
       - name: GLIBC List
         shell: bash
@@ -177,7 +169,6 @@ jobs:
         with:
           name: push-build-android
           path: target/resources/*
-
 
   macos-build:
     runs-on: macos-latest
