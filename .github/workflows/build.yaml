@@ -67,10 +67,10 @@ jobs:
         shell: bash
         run: |
           ldd --version
-          sudo apt-get update
-          sudo apt-get install -y -q binutils
-          sudo apt install wget
-          sudo apt-get install -y -q gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
+          apt-get update
+          apt-get install -y -q binutils
+          apt-get install -y -q wget
+          apt-get install -y -q gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
           strings /lib/x86_64-linux-gnu/libc.so.6 | grep GLIBC_
 
       - name: Toolchain
