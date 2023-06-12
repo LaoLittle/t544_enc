@@ -9,6 +9,7 @@ crate-type = ["lib", "cdylib"]
 [dependencies]
 rc4 = "0.1.0"
 md-5 = "0.10.5"
+jni = "0.20.0"
 
 [dependencies.rand]
 version = "0.8.5"

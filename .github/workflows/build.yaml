@@ -1,0 +1,214 @@
+name: "build"
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+
+permissions:
+  contents: write
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Rust Target
+        shell: bash
+        run: |
+          rustup target add x86_64-pc-windows-msvc
+          rustup target add i686-pc-windows-msvc
+
+      - name: Build Windows X64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target x86_64-pc-windows-msvc
+
+      - name: Build Windows X86
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target i686-pc-windows-msvc
+
+      - name: Rename Library File Name
+        shell: bash
+        run: |
+          mkdir -p target/resources
+          cp target/x86_64-pc-windows-msvc/release/t544_enc.dll target/resources/t544-enc-windows-x64.dll
+          sha256sum target/resources/t544-enc-windows-x64.dll | awk '{ print $1 }' > target/resources/t544-enc-windows-x64.dll.sha256
+          cp target/i686-pc-windows-msvc/release/t544_enc.dll target/resources/t544-enc-windows-x86.dll
+          sha256sum target/resources/t544-enc-windows-x86.dll | awk '{ print $1 }' > target/resources/t544-enc-windows-x86.dll.sha256
+
+      - name: Upload JNI
+        uses: actions/upload-artifact@v3
+        with:
+          name: push-build-windows
+          path: target/resources/*
+
+  linux-build:
+    runs-on: ubuntu-latest
+    container: ubuntu:16.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: GLIBC List
+        shell: bash
+        run: |
+          ldd --version
+          apt-get update -q
+          apt-get install -y -q binutils wget
+          apt-get install -y -q build-essential gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
+          strings /lib/x86_64-linux-gnu/libc.so.6 | grep GLIBC_
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Rust Target
+        shell: bash
+        run: |
+          rustup target add x86_64-unknown-linux-gnu
+          rustup target add aarch64-unknown-linux-gnu
+
+      - name: Build Linux X64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target x86_64-unknown-linux-gnu
+
+      - name: Build Linux AARCH64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target aarch64-unknown-linux-gnu
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      - name: Rename Library File Name
+        shell: bash
+        run: |
+          mkdir -p target/resources
+          cp target/x86_64-unknown-linux-gnu/release/libt544_enc.so target/resources/libt544-enc-linux-x64.so
+          sha256sum target/resources/libt544-enc-linux-x64.so | awk '{ print $1 }' > target/resources/libt544-enc-linux-x64.so.sha256
+          cp target/aarch64-unknown-linux-gnu/release/libt544_enc.so target/resources/libt544-enc-linux-arm64.so
+          sha256sum target/resources/libt544-enc-linux-arm64.so | awk '{ print $1 }' > target/resources/libt544-enc-linux-arm64.so.sha256
+
+      - name: Upload JNI
+        uses: actions/upload-artifact@v3
+        with:
+          name: push-build-linux
+          path: target/resources/*
+
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Rust Target
+        shell: bash
+        run: |
+          rustup target add x86_64-linux-android
+          rustup target add aarch64-linux-android
+
+      - name: Install Android NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1.2.0
+        with:
+          ndk-version: r25b
+
+      - name: Set Android NDK ToolChains Path
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin >> $GITHUB_PATH
+          echo "INPUT(-lunwind)" >> ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/x86_64/libgcc.a
+          echo "INPUT(-lunwind)" >> ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/aarch64/libgcc.a
+
+      - name: Build Android X64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target x86_64-linux-android
+        env:
+          CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
+          CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
+
+      - name: Build Android ARM64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target aarch64-linux-android
+        env:
+          CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
+          CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
+
+      - name: Rename Library File Name
+        shell: bash
+        run: |
+          mkdir -p target/resources
+          cp target/x86_64-linux-android/release/libt544_enc.so target/resources/libt544-enc-android-x64.so
+          sha256sum target/resources/libt544-enc-android-x64.so | awk '{ print $1 }' > target/resources/libt544-enc-android-x64.so.sha256
+          cp target/aarch64-linux-android/release/libt544_enc.so target/resources/libt544-enc-android-arm64.so
+          sha256sum target/resources/libt544-enc-android-arm64.so | awk '{ print $1 }' > target/resources/libt544-enc-android-arm64.so.sha256
+
+      - name: Upload JNI
+        uses: actions/upload-artifact@v3
+        with:
+          name: push-build-android
+          path: target/resources/*
+
+  macos-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Rust Target
+        shell: bash
+        run: |
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+
+      - name: Build MacOS ARM64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target aarch64-apple-darwin
+
+      - name: Build MacOS X64
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target x86_64-apple-darwin
+
+      - name: Rename Library File Name
+        shell: bash
+        run: |
+          mkdir -p target/resources
+          cp target/x86_64-apple-darwin/release/libt544_enc.dylib target/resources/libt544-enc-macos-x64.dylib
+          shasum -a 256 target/resources/libt544-enc-macos-x64.dylib | awk '{ print $1 }' > target/resources/libt544-enc-macos-x64.dylib.sha256
+          cp target/aarch64-apple-darwin/release/libt544_enc.dylib target/resources/libt544-enc-macos-arm64.dylib
+          shasum -a 256 target/resources/libt544-enc-macos-arm64.dylib | awk '{ print $1 }' > target/resources/libt544-enc-macos-arm64.dylib.sha256
+
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: push-build-macos
+          path: target/resources/*

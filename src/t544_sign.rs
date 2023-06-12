@@ -1,5 +1,18 @@
+use jni::JNIEnv;
+use jni::sys::{jbyteArray, jclass};
 use crate::data::*;
 use rand::{Rng, RngCore};
+
+// 'byte[] xyz.cssxsh.mirai.tool.TLV544Provider.sign$fix_protocol_version(long, byte[])'
+#[no_mangle]
+pub extern "system" fn Java_xyz_cssxsh_mirai_tool_TLV544Provider_sign_00024fix_1protocol_1version(
+    env: JNIEnv, _this: jclass, payload: jbyteArray,
+) -> jbyteArray {
+    let bytes = env.convert_byte_array(payload).unwrap();
+    let curr = std::time::UNIX_EPOCH.elapsed().unwrap().as_micros();
+    let r = sign(curr as _, bytes.as_slice());
+    env.byte_array_from_slice(&r).unwrap() as _
+}
 
 #[no_mangle]
 unsafe extern "C" fn sign_bytes(ptr: *const u8, len: usize, buf: *mut [u8; 39]) {
