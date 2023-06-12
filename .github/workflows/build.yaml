@@ -29,11 +29,17 @@ jobs:
         shell: bash
         run: |
           rustup target add x86_64-pc-windows-msvc
+          rustup target add i686-pc-windows-msvc
 
       - name: Build Windows X64
         shell: bash
         run: |
           cargo build --package t544_enc --lib --release --target x86_64-pc-windows-msvc
+
+      - name: Build Windows X86
+        shell: bash
+        run: |
+          cargo build --package t544_enc --lib --release --target i686-pc-windows-msvc
 
       - name: Rename Library File Name
         shell: bash
@@ -41,6 +47,8 @@ jobs:
           mkdir -p target/resources
           cp target/x86_64-pc-windows-msvc/release/t544_enc.dll target/resources/t544-enc-windows-x64.dll
           sha256sum target/resources/t544-enc-windows-x64.dll | awk '{ print $1 }' > target/resources/t544-enc-windows-x64.dll.sha256
+          cp target/i686-pc-windows-msvc/release/t544_enc.dll target/resources/t544-enc-windows-x86.dll
+          sha256sum target/resources/t544-enc-windows-x86.dll | awk '{ print $1 }' > target/resources/t544-enc-windows-x86.dll.sha256
 
       - name: Upload JNI
         uses: actions/upload-artifact@v3
@@ -60,7 +68,6 @@ jobs:
         shell: bash
         run: |
           ldd --version
-          strings /lib/x86_64-linux-gnu/libc.so.6 | grep GLIBC_
 
       - name: Install Rust X64 Target
         shell: bash
