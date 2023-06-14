@@ -280,11 +280,11 @@ fn sub_b(data: &mut [u8; 16], tb: &[u32; 4]) {
 }
 
 fn sub_c(t: &[[u8; 16]; 16], data: &mut [u8; 16]) {
-    for i in 0..16 {
-        let datum = data[i] as usize;
-        let tab = &t[datum >> 4];
+    for datum in data.iter_mut() {
+        let i = *datum as usize;
+        let tab = &t[i >> 4];
 
-        data[i] = tab[datum & 15];
+        *datum = tab[i & 15];
     }
 }
 
@@ -341,11 +341,10 @@ fn init_state_impl(state: &mut State, key: &[u8; 32], data: &[u8; 8], counter: u
     stat[..4].copy_from_slice(&STAT_CHK);
 
     // 4..12
-    for i in (0..32).step_by(4) {
-        let i4 = i + 4;
-        let kb = <[u8; 4]>::try_from(&key[i..i4]).unwrap();
+    for (i, chunk) in key.chunks(4).enumerate() {
+        let kb = <[u8; 4]>::try_from(chunk).unwrap();
         let k = u32::from_le_bytes(kb);
-        stat[(i + 16) >> 2] = k;
+        stat[i + 4] = k;
     }
 
     fn put_16b(dst: &mut [u32; 2], src: &[u8; 8]) {
@@ -354,8 +353,7 @@ fn init_state_impl(state: &mut State, key: &[u8; 32], data: &[u8; 8], counter: u
         let u2 = <[u8; 4]>::try_from(b).unwrap();
         let u1 = u32::from_le_bytes(u1);
         let u2 = u32::from_le_bytes(u2);
-        dst[0] = u1;
-        dst[1] = u2;
+        (dst[0], dst[1]) = (u1, u2);
     }
 
     // 12..14
@@ -368,13 +366,8 @@ fn init_state_impl(state: &mut State, key: &[u8; 32], data: &[u8; 8], counter: u
 
     let org_stat = &mut state.org_state;
 
-    for i in 0..12 {
-        org_stat[i] = stat[i];
-    }
-
-    for i in 12..16 {
-        org_stat[i] = rand::thread_rng().next_u32();
-    }
+    org_stat[..12].copy_from_slice(&stat[..12]);
+    rand::thread_rng().fill(&mut org_stat[12..]);
 }
 
 fn encrypt(state: &mut State, data: &mut [u8]) {
