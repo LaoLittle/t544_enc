@@ -55,18 +55,22 @@ jobs:
 
   linux-build:
     runs-on: ubuntu-latest
-    container: ubuntu:16.04
+    container: ubuntu:10.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: APT Update
+        shell: bash
+        run: |
+          apt-get update -q
+          apt-get install -y -q binutils wget
+          apt-get install -y -q build-essential gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
 
       - name: GLIBC List
         shell: bash
         run: |
           ldd --version
-          apt-get update -q
-          apt-get install -y -q binutils wget
-          apt-get install -y -q build-essential gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
           strings /lib/x86_64-linux-gnu/libc.so.6 | grep GLIBC_
 
       - name: Install Rust Toolchain
