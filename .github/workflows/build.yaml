@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           apt-get update -q
-          apt-get install -y -q binutils wget
+          apt-get install -y -q binutils curl
           apt-get install -y -q build-essential gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
 
       - name: GLIBC List
